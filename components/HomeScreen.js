@@ -3,29 +3,35 @@ import { StyleSheet, Text, View, ScrollView, Alert, Image } from "react-native";
 import MyHeader from "./MyHeader";
 import { TextInput, Card, List, Title } from "react-native-paper";
 import * as Location from "expo-location";
-
-//my key => 9fb0f39aa274350ac71a4f1de55a8ae0
+import * as Permissions from "expo-permissions";
 
 export default class HomeScreen extends React.Component {
-  state = {
-    info: {
-      name: "loading",
-      temp: "loading",
-      humidity: "loading",
-      desc: "loading",
-      icon: "loading"
-    },
-    location: {}
-  };
+  constructor(props) {
+    super(props);
+    this.state = {
+      info: {
+        name: "loading",
+        temp: "loading",
+        humidity: "loading",
+        desc: "loading",
+        icon: "loading"
+      },
+      location: {},
+      cityName: ""
+    };
+  }
 
-  getWeather() {
-    const apiKey = "9fb0f39aa274350ac71a4f1de55a8ae0";
-    const cityName = this.props.navigation.getParam("city", "boston");
-    const fetchUrl = `http://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=${apiKey}&units=imperial`;
-    fetch(fetchUrl)
-      .then(res => res.json())
-      .then(data => {
-        console.log(data);
+  async getWeather() {
+    if (this.state.name !== "loading") {
+      const apiKey = "c6ae69715df250a4d804789e0b34b343";
+      const cityName = this.props.navigation.getParam(
+        "city",
+        this.state.cityName
+      );
+      const fetchUrl = `http://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=${apiKey}&units=imperial`;
+      try {
+        const response = await fetch(fetchUrl);
+        const data = await response.json();
         this.setState({
           info: {
             name: data.name,
@@ -35,41 +41,46 @@ export default class HomeScreen extends React.Component {
             icon: data.weather[0].icon
           }
         });
-      });
+      } catch (e) {
+        this.setState({
+          info: {
+            name: "N/A",
+            temp: "N/A",
+            humidity: "N/A",
+            desc: "N/A",
+            icon: "N/A"
+          }
+        });
+      }
+    }
   }
 
-  getLocationPermission() {
-    const promise = Location.requestPermissionsAsync();
-
-    promise
-      .then(data => {
-        this.setState({ rejected: false });
-        this.getCurrentLocation();
-      })
-      .catch(() => this.setState({ rejected: true }));
-  }
-
-  getCurrentLocation() {
-    const promise = Location.getCurrentPositionAsync({});
-
-    promise
-      .then(location =>
-        this.setState({ location: location.coords, locationFailed: false })
-      )
-      .catch(() => this.setState({ locationFailed: true }));
+  async getLocation() {
+    if (cityName !== "") {
+      const { status } = await Permissions.askAsync(Permissions.LOCATION);
+      if (status === "granted") {
+        try {
+          const location = await Location.getCurrentPositionAsync();
+          const cityName = await Location.reverseGeocodeAsync({
+            latitude: location.latitude,
+            longitude: location.latitude
+          });
+          this.setState({
+            cityName
+          });
+        } catch (e) {
+          alert("Error fetching location");
+        }
+      }
+    }
   }
 
   componentDidMount() {
-    this.getLocationPermission();
+    this.getLocation();
     this.getWeather();
   }
 
   render() {
-    if (this.props.navigation.getParam("city", "boston")) {
-      this.getWeather();
-    }
-    //console.log(this.state.info);
-
     return (
       <View style={styles.container}>
         <MyHeader title="current weather" />

@@ -8,6 +8,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import SearchScreen from "./components/SearchScreen";
 import HomeScreen from "./components/HomeScreen";
 import MapScreen from "./components/MapScreen";
+import App from "./app/index";
 
 const TabNavigator = createBottomTabNavigator(
   {
